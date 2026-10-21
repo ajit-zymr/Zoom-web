@@ -103,37 +103,66 @@ function RoomView({ title, meetingId, joinLink, mediaError, deviceMessage, onLea
         ? "Still not connected. No video call is in progress."
         : "Connecting to LiveKit…";
 
+  const statusLabel = connected ? "Connected" : mediaError || slow ? "Offline" : "Connecting";
+
   return (
     <section className="room">
       <header className="room-bar">
-        <div>
-          <p className="eyebrow">Atrium</p>
-          <h1>{title}</h1>
-          <p className="room-id">Meeting ID {meetingId}</p>
+        <div className="room-identity">
+          <span className="room-brand" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 7h11v10H4zM15 10l5-3v10l-5-3" /></svg>
+          </span>
+          <div className="room-heading">
+            <div className="room-title-row">
+              <span className="room-product">Atrium</span>
+              <span className="room-divider" aria-hidden="true" />
+              <h1>{title}</h1>
+            </div>
+            <p className="room-id">ID: {meetingId}</p>
+          </div>
         </div>
         <div className="room-actions">
+          <span className={`connection-pill ${connected ? "connected" : "pending"}`} role="status">
+            <span aria-hidden="true" />
+            {statusLabel}
+          </span>
           <button
             type="button"
-            className="secondary"
+            className="room-copy-button"
+            aria-label={copied ? "Meeting link copied" : "Copy meeting link"}
             onClick={() => {
               void copyText(joinLink).then(setCopied);
             }}
           >
-            {copied ? "Copied" : "Copy link"}
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 15 15 9M7.5 17.5l-1 1a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0M16.5 6.5l1-1a3.5 3.5 0 0 1 5 5l-4 4a3.5 3.5 0 0 1-5 0" />
+            </svg>
+            <span>{copied ? "Copied" : "Invite"}</span>
           </button>
           {!connected ? (
-            <button type="button" onClick={onLeave}>
+            <button type="button" className="room-back-button" onClick={onLeave}>
               Back
             </button>
           ) : null}
         </div>
       </header>
 
-      <p className={`status-banner ${connected ? "ready" : "warn"}`} role="status">
-        {status}
-      </p>
-      {mediaError ? <p className="form-error room-note">{mediaError}</p> : null}
-      {deviceMessage ? <p className="room-note">{deviceMessage}</p> : null}
+      {mediaError || deviceMessage ? (
+        <div className="room-notices">
+          {mediaError ? (
+            <p className="room-notice error" role="alert">
+              <span aria-hidden="true">!</span>
+              {mediaError}
+            </p>
+          ) : null}
+          {deviceMessage ? (
+            <p className="room-notice" role="status">
+              <span aria-hidden="true">i</span>
+              {deviceMessage}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="stage">
         {connected ? (
@@ -142,16 +171,26 @@ function RoomView({ title, meetingId, joinLink, mediaError, deviceMessage, onLea
           </GridLayout>
         ) : (
           <div className="waiting">
-            <p>{status}</p>
+            <span className="waiting-mark" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+            <div>
+              <h2>{mediaError || slow ? "We couldn't connect" : "Preparing your room"}</h2>
+              <p>{status}</p>
+            </div>
           </div>
         )}
       </div>
 
       {connected ? (
-        <ControlBar
-          variation="minimal"
-          controls={{ microphone: true, camera: true, screenShare: false, chat: false, leave: true }}
-        />
+        <div className="room-controls" aria-label="Meeting controls">
+          <ControlBar
+            variation="minimal"
+            controls={{ microphone: true, camera: true, screenShare: false, chat: false, leave: true }}
+          />
+        </div>
       ) : null}
       <RoomAudioRenderer />
     </section>

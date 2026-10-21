@@ -6,15 +6,20 @@ import { defineConfig } from 'vite'
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 const certDirectory = path.resolve(root, '../certs')
+const keyPath = path.join(certDirectory, 'dev-key.pem')
+const certPath = path.join(certDirectory, 'dev-cert.pem')
+const https = fs.existsSync(keyPath) && fs.existsSync(certPath)
+  ? {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath),
+    }
+  : undefined
 
 export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    https: {
-      key: fs.readFileSync(path.join(certDirectory, 'dev-key.pem')),
-      cert: fs.readFileSync(path.join(certDirectory, 'dev-cert.pem')),
-    },
+    https,
     watch: {
       usePolling: true,
       interval: 1000,
