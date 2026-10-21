@@ -85,7 +85,13 @@ function RoomView({ title, meetingId, joinLink, mediaError, deviceMessage, onLea
   const connected = connection === ConnectionState.Connected;
   const [slow, setSlow] = useState(false);
   const [copied, setCopied] = useState(false);
-  const tracks = useTracks([{ source: Track.Source.Camera, withPlaceholder: true }], { onlySubscribed: false });
+  const tracks = useTracks(
+    [
+      { source: Track.Source.Camera, withPlaceholder: true },
+      { source: Track.Source.ScreenShare, withPlaceholder: false },
+    ],
+    { onlySubscribed: false },
+  );
 
   useEffect(() => {
     if (connected) {
@@ -188,7 +194,13 @@ function RoomView({ title, meetingId, joinLink, mediaError, deviceMessage, onLea
         <div className="room-controls" aria-label="Meeting controls">
           <ControlBar
             variation="minimal"
-            controls={{ microphone: true, camera: true, screenShare: false, chat: false, leave: true }}
+            controls={{
+              microphone: true,
+              camera: true,
+              screenShare: !mediaDevicesUnavailable(),
+              chat: false,
+              leave: true,
+            }}
           />
         </div>
       ) : null}
