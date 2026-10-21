@@ -1,0 +1,28 @@
+{
+  "name": "atrium-server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "livekit-server-sdk": "^2.14.1",
+    "mongodb": "^6.20.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.23",
+    "@types/node": "^24.9.1",
+    "mongodb-memory-server": "^10.4.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

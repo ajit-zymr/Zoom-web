@@ -1,0 +1,17 @@
+{
+  "name": "atrium",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c auto \"npm run dev -w atrium-server\" \"npm run dev -w atrium-client\"",
+    "test": "npm test -w atrium-server",
+    "typecheck": "npm run typecheck -w atrium-server && npm run typecheck -w atrium-client",
+    "build": "npm run typecheck -w atrium-server && npm run build -w atrium-client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
