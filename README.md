@@ -9,8 +9,7 @@ The React app never receives the LiveKit API key or secret. A video call is conn
 Requirements:
 
 - Node.js 22 or newer
-- MongoDB 7, local or in Docker
-- A LiveKit server when you want to test audio and video
+- Docker for the included MongoDB and LiveKit development services
 
 ```bash
 npm install
@@ -18,11 +17,22 @@ docker compose up -d
 cp .env.example .env
 ```
 
-Edit `.env` after you have a LiveKit server. Leave the LiveKit values empty if you only want to create and share meeting links.
+The included development configuration starts MongoDB and LiveKit with Docker. Open the app at
+`http://localhost:5173`; do not use a machine IP over plain HTTP because browsers block camera
+and microphone access outside a secure context.
+
+To use a machine IP, create a locally trusted certificate containing that IP at
+`certs/dev-key.pem` and `certs/dev-cert.pem`, then set `CLIENT_ORIGIN`, `PUBLIC_APP_ORIGIN`, and
+`LIVEKIT_URL` to the matching HTTPS/WSS address. Set `LIVEKIT_NODE_IP` to the machine IP so
+LiveKit advertises a reachable media address. Restart Docker Compose and the app after changing
+these values.
 
 ### LiveKit
 
-The official local server uses development credentials. From [Running LiveKit locally](https://docs.livekit.io/transport/self-hosting/local/):
+Docker Compose starts the official LiveKit server in development mode with its published local
+credentials. The API reads the matching `devkey` and `secret` values from `.env.example`.
+
+To run LiveKit manually instead, stop the Compose service and use:
 
 ```bash
 curl -sSL https://get.livekit.io | bash
@@ -36,7 +46,7 @@ API key: devkey
 API secret: secret
 ```
 
-Put the same values in `.env`:
+Keep the same values in `.env`:
 
 ```text
 LIVEKIT_URL=ws://127.0.0.1:7880
@@ -46,7 +56,7 @@ LIVEKIT_API_SECRET=secret
 
 `devkey` and `secret` are LiveKit's published local defaults, not production credentials. For any shared or deployed server, create your own key pair and keep it in the server environment only.
 
-An equivalent Docker process is:
+The equivalent standalone Docker process is:
 
 ```bash
 docker run --rm -p 7880:7880 -p 7881:7881 -p 7882:7882/udp livekit/livekit-server --dev
@@ -62,6 +72,7 @@ npm run dev
 
 - App: http://localhost:5173
 - API: http://127.0.0.1:3001
+- LiveKit: ws://127.0.0.1:7880
 
 The Vite dev server proxies `/api` to the API, so the browser does not need a LiveKit environment variable.
 
