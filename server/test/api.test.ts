@@ -88,6 +88,20 @@ describe("meetings API", { timeout: 120_000, concurrency: 1 }, () => {
     assert.equal(body.error.code, "validation_error");
   });
 
+  test("rejects a missing or blank meeting title", async () => {
+    for (const payload of [{ displayName: "Ada" }, { displayName: "Ada", title: "   " }]) {
+      const response = await fetch(`${baseUrl}/api/meetings`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      assert.equal(response.status, 400);
+      const body = (await response.json()) as ErrorBody;
+      assert.equal(body.error.code, "validation_error");
+      assert.equal(body.error.message, "Enter a meeting title.");
+    }
+  });
+
   test("returns 404 for an unknown meeting", async () => {
     const response = await fetch(`${baseUrl}/api/meetings/abcdefgh23`);
     assert.equal(response.status, 404);
@@ -96,7 +110,7 @@ describe("meetings API", { timeout: 120_000, concurrency: 1 }, () => {
   test("does not issue a token when LiveKit is not configured", async () => {
     const meeting = await request<MeetingBody>("/api/meetings", {
       method: "POST",
-      body: JSON.stringify({ displayName: "Grace" }),
+      body: JSON.stringify({ displayName: "Grace", title: "Service check" }),
     });
     const blocked = createApp(db, configured(false));
     const blockedServer = blocked.listen(0, "127.0.0.1");
@@ -122,7 +136,7 @@ describe("meetings API", { timeout: 120_000, concurrency: 1 }, () => {
   test("issues a room-scoped LiveKit token for an existing meeting", async () => {
     const meeting = await request<MeetingBody>("/api/meetings", {
       method: "POST",
-      body: JSON.stringify({ displayName: "Lin" }),
+      body: JSON.stringify({ displayName: "Lin", title: "Token test" }),
     });
     const response = await fetch(`${baseUrl}/api/meetings/${meeting.meeting.id}/join`, {
       method: "POST",

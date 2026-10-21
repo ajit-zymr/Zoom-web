@@ -15,10 +15,10 @@ const displayNameSchema = z
 const createMeetingSchema = z.object({
   displayName: displayNameSchema,
   title: z
-    .string({ invalid_type_error: "Title must be text." })
+    .string({ required_error: "Enter a meeting title.", invalid_type_error: "Enter a meeting title." })
     .trim()
-    .max(80, "Use 80 characters or fewer for the title.")
-    .optional(),
+    .min(1, "Enter a meeting title.")
+    .max(80, "Use 80 characters or fewer for the title."),
 });
 
 const joinSchema = z.object({
