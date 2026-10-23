@@ -1,29 +1,11 @@
 import cors from "cors";
 import express, { type ErrorRequestHandler, type Express } from "express";
 import type { Db } from "mongodb";
-import { ZodError, z } from "zod";
+import { ZodError } from "zod";
 import { livekitUnavailableMessage, type AppConfig } from "./config.js";
 import { createParticipantToken } from "./livekit.js";
 import { addParticipant, createMeeting, getMeeting, isMeetingId } from "./meetings.js";
-
-const displayNameSchema = z
-  .string({ required_error: "Enter a display name.", invalid_type_error: "Enter a display name." })
-  .trim()
-  .min(1, "Enter a display name.")
-  .max(40, "Use 40 characters or fewer for the display name.");
-
-const createMeetingSchema = z.object({
-  displayName: displayNameSchema,
-  title: z
-    .string({ required_error: "Enter a meeting title.", invalid_type_error: "Enter a meeting title." })
-    .trim()
-    .min(1, "Enter a meeting title.")
-    .max(80, "Use 80 characters or fewer for the title."),
-});
-
-const joinSchema = z.object({
-  displayName: displayNameSchema,
-});
+import { createMeetingSchema, joinMeetingSchema } from "./validation.js";
 
 export function createApp(db: Db, config: AppConfig): Express {
   const app = express();
@@ -89,7 +71,7 @@ export function createApp(db: Db, config: AppConfig): Express {
         res.status(404).json(meetingNotFound());
         return;
       }
-      const body = joinSchema.parse(req.body);
+      const body = joinMeetingSchema.parse(req.body);
       if (config.livekit.state !== "ready") {
         res.status(503).json({
           error: {
