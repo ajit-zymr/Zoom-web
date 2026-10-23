@@ -54,7 +54,7 @@ export async function createMeeting(input: { displayName: string; title: string 
     method: "POST",
     body: JSON.stringify({
       displayName: input.displayName,
-      title: input.title.trim() || undefined,
+      title: input.title.trim(),
     }),
   });
 }

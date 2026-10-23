@@ -28,18 +28,16 @@ type UserDocument = {
   createdAt: Date;
 };
 
-const DEFAULT_TITLE = "Instant meeting";
-
 export function isMeetingId(value: string): boolean {
   return MEETING_ID_PATTERN.test(value);
 }
 
 export async function createMeeting(
   db: Db,
-  input: { displayName: string; title?: string },
+  input: { displayName: string; title: string },
 ): Promise<MeetingResponse> {
   const host = await insertUser(db, input.displayName);
-  const title = input.title?.trim() || DEFAULT_TITLE;
+  const title = input.title.trim();
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const publicId = createMeetingId();

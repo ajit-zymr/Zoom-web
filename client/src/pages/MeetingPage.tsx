@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ApiError, getMeeting, joinMeeting, meetingLink, type JoinSession, type Meeting } from "../api";
 import { MeetingRoom } from "../components/MeetingRoom";
@@ -8,6 +8,8 @@ type JoinLocationState = {
   displayName?: string;
   audio?: boolean;
   video?: boolean;
+  autoJoin?: boolean;
+  showInvite?: boolean;
 };
 
 export function MeetingPage() {
@@ -22,6 +24,7 @@ export function MeetingPage() {
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [session, setSession] = useState<JoinSession | null>(null);
+  const autoJoinMeeting = useRef<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -49,8 +52,7 @@ export function MeetingPage() {
   const meeting = loaded?.meetingId === meetingId ? loaded.meeting : null;
   const loadError = loaded?.meetingId === meetingId ? loaded.error : null;
 
-  async function onJoin(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const enterMeeting = useCallback(async () => {
     setJoinError(null);
     setJoining(true);
     try {
@@ -61,6 +63,19 @@ export function MeetingPage() {
     } finally {
       setJoining(false);
     }
+  }, [displayName, meetingId]);
+
+  useEffect(() => {
+    if (!meeting || !incoming?.autoJoin || autoJoinMeeting.current === meetingId) {
+      return;
+    }
+    autoJoinMeeting.current = meetingId;
+    void enterMeeting();
+  }, [enterMeeting, incoming?.autoJoin, meeting, meetingId]);
+
+  function onJoin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void enterMeeting();
   }
 
   if (session && meeting) {
@@ -73,8 +88,20 @@ export function MeetingPage() {
         serverUrl={session.serverUrl}
         audio={audio}
         video={video}
+        displayName={displayName}
+        inviteInitiallyOpen={Boolean(incoming?.showInvite)}
         onLeave={() => navigate("/")}
       />
+    );
+  }
+
+  if (incoming?.autoJoin && !loadError && !joinError) {
+    return (
+      <div className="meeting-entry" role="status" aria-live="polite">
+        <span className="meeting-entry-mark" aria-hidden="true"><span /><span /><span /></span>
+        <h1>{loading ? "Creating your meeting" : "Joining your meeting"}</h1>
+        <p>Your room will open automatically.</p>
+      </div>
     );
   }
 
@@ -112,16 +139,39 @@ export function MeetingPage() {
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
               />
-              <fieldset>
+              <fieldset className="device-options">
                 <legend>Start with</legend>
-                <label className="check">
-                  <input type="checkbox" checked={audio} onChange={(event) => setAudio(event.target.checked)} />
-                  Microphone
-                </label>
-                <label className="check">
-                  <input type="checkbox" checked={video} onChange={(event) => setVideo(event.target.checked)} />
-                  Camera
-                </label>
+                <div className="device-grid">
+                  <label className="device-option">
+                    <span className="device-option-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                        <path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3" />
+                      </svg>
+                    </span>
+                    <span>Microphone</span>
+                    <input
+                      type="checkbox"
+                      checked={audio}
+                      onChange={(event) => setAudio(event.target.checked)}
+                    />
+                    <span className="toggle" aria-hidden="true" />
+                  </label>
+                  <label className="device-option">
+                    <span className="device-option-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M15 10 21 7v10l-6-3v-4ZM3 6h12v12H3z" />
+                      </svg>
+                    </span>
+                    <span>Camera</span>
+                    <input
+                      type="checkbox"
+                      checked={video}
+                      onChange={(event) => setVideo(event.target.checked)}
+                    />
+                    <span className="toggle" aria-hidden="true" />
+                  </label>
+                </div>
               </fieldset>
               {joinError ? (
                 <div className="form-error" role="alert">

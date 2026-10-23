@@ -1,14 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { ApiError, createMeeting, meetingLink, type Meeting } from "../api";
+import { ApiError, createMeeting } from "../api";
 import { MediaStatus } from "../components/MediaStatus";
-import { copyText } from "../lib/copyText";
 import { parseMeetingId } from "../../../shared/meetingId";
-
-type CreatedMeeting = {
-  meeting: Meeting;
-  link: string;
-};
 
 type MeetingTab = "create" | "join";
 const COPYRIGHT_YEAR = new Date().getFullYear();
@@ -23,19 +17,31 @@ export function LandingPage() {
   const [audio, setAudio] = useState(true);
   const [video, setVideo] = useState(true);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [created, setCreated] = useState<CreatedMeeting | null>(null);
-  const [copied, setCopied] = useState(false);
 
   async function onCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setCreateError(null);
+    setTitleError(null);
+    const meetingTitle = title.trim();
+    if (!meetingTitle) {
+      setTitleError("Meeting title is required.");
+      return;
+    }
     setCreating(true);
     try {
-      const result = await createMeeting({ displayName: hostName, title });
-      setCreated({ meeting: result.meeting, link: result.joinUrl || meetingLink(result.meeting.id) });
-      setCopied(false);
+      const result = await createMeeting({ displayName: hostName, title: meetingTitle });
+      navigate(`/m/${result.meeting.id}`, {
+        state: {
+          displayName: hostName.trim(),
+          audio,
+          video,
+          autoJoin: true,
+          showInvite: true,
+        },
+      });
     } catch (error) {
       setCreateError(error instanceof ApiError ? error.message : "Could not create the meeting.");
     } finally {
@@ -57,13 +63,6 @@ export function LandingPage() {
     navigate(`/m/${meetingId}`, {
       state: { displayName: guestName.trim(), audio, video },
     });
-  }
-
-  async function onCopy() {
-    if (!created) {
-      return;
-    }
-    setCopied(await copyText(created.link));
   }
 
   return (
@@ -178,47 +177,7 @@ export function LandingPage() {
             aria-labelledby="create-tab"
             hidden={activeTab !== "create"}
           >
-            {created ? (
-              <div className="created-state">
-                <div className="success-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-8" /></svg>
-                </div>
-                <p className="eyebrow">Your room is ready</p>
-                <h3>{created.meeting.title}</h3>
-                <p className="created-copy">Share this link with anyone you want to invite.</p>
-                <label htmlFor="share-link" className="field-label">Meeting link</label>
-                <div className="share-row">
-                  <input id="share-link" readOnly value={created.link} />
-                  <button type="button" className="copy-button" onClick={() => void onCopy()}>
-                    {copied ? "Copied" : "Copy"}
-                  </button>
-                </div>
-                <div className="actions stacked-actions">
-                  <button
-                    type="button"
-                    className="primary-action"
-                    onClick={() =>
-                      navigate(`/m/${created.meeting.id}`, {
-                        state: { displayName: hostName.trim(), audio, video },
-                      })
-                    }
-                  >
-                    Join this meeting
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => {
-                      setCreated(null);
-                      setTitle("");
-                    }}
-                  >
-                    Create another
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <form className="meeting-form" onSubmit={(event) => void onCreate(event)}>
+            <form className="meeting-form" onSubmit={(event) => void onCreate(event)}>
                 <div className="form-field">
                   <label htmlFor="host-name">Your display name</label>
                   <input
@@ -229,30 +188,69 @@ export function LandingPage() {
                     required
                     placeholder="How others will see you"
                     value={hostName}
-                    onChange={(event) => setHostName(event.target.value)}
+                    onChange={(event) => {
+                      setHostName(event.target.value);
+                      setCreateError(null);
+                    }}
                   />
                 </div>
                 <div className="form-field">
                   <div className="label-row">
                     <label htmlFor="meeting-title">Meeting title</label>
-                    <span>Optional</span>
+                    <span>Required</span>
                   </div>
                   <input
                     id="meeting-title"
                     name="title"
                     maxLength={80}
+                    required
+                    aria-invalid={Boolean(titleError)}
+                    aria-describedby={titleError ? "meeting-title-error" : undefined}
                     placeholder="e.g. Weekly catch-up"
                     value={title}
-                    onChange={(event) => setTitle(event.target.value)}
+                    onInvalid={(event) => {
+                      event.preventDefault();
+                      setTitleError("Meeting title is required.");
+                    }}
+                    onChange={(event) => {
+                      setTitle(event.target.value);
+                      setTitleError(null);
+                      setCreateError(null);
+                    }}
                   />
+                  {titleError ? (
+                    <p className="field-error" id="meeting-title-error" role="alert">
+                      {titleError}
+                    </p>
+                  ) : null}
                 </div>
+                <fieldset className="device-options">
+                  <legend>Start with</legend>
+                  <div className="device-grid">
+                    <label className="device-option">
+                      <span className="device-option-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3" /></svg>
+                      </span>
+                      <span>Microphone</span>
+                      <input type="checkbox" checked={audio} onChange={(event) => setAudio(event.target.checked)} />
+                      <span className="toggle" aria-hidden="true" />
+                    </label>
+                    <label className="device-option">
+                      <span className="device-option-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M15 10 21 7v10l-6-3v-4ZM3 6h12v12H3z" /></svg>
+                      </span>
+                      <span>Camera</span>
+                      <input type="checkbox" checked={video} onChange={(event) => setVideo(event.target.checked)} />
+                      <span className="toggle" aria-hidden="true" />
+                    </label>
+                  </div>
+                </fieldset>
                 {createError ? <p className="form-error" role="alert">{createError}</p> : null}
                 <button className="primary-action" type="submit" disabled={creating}>
                   {creating ? "Creating…" : "Create meeting"}
                 </button>
-                <p className="form-footnote">You can invite others after your room is created.</p>
-              </form>
-            )}
+              <p className="form-footnote">You’ll enter the meeting as soon as the room is ready.</p>
+            </form>
           </div>
 
           <div
